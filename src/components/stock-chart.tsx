@@ -23,7 +23,11 @@ interface StockChartProps {
 
 interface CustomTooltipProps {
   active?: boolean;
-  payload?: any[];
+  payload?: Array<{
+    payload: StockHistoricalData & Record<string, unknown>;
+    name?: string;
+    value?: number;
+  }>;
   label?: string;
 }
 
