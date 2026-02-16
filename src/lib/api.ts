@@ -33,8 +33,7 @@ export interface SearchResult {
 
 // Base URLs - using only Finnhub API
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
-const FINNHUB_API_KEY = "d06fke9r01qg26s7lp40d06fke9r01qg26s7lp4g"; // Your Finnhub API key
-
+const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
 // Popular stock symbols to use for trending stocks
 const POPULAR_SYMBOLS = [
   "AAPL",
@@ -223,6 +222,15 @@ export async function getStockQuote(symbol: string): Promise<StockData | null> {
     const quoteData = await quoteResponse.json();
     const profileData = await profileResponse.json();
 
+    // Fetch latest volume from Yahoo
+    const yahooRes = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=1d&interval=1d`,
+    );
+    const yahooData = await yahooRes.json();
+
+    const yahooVolume =
+      yahooData?.chart?.result?.[0]?.indicators?.quote?.[0]?.volume?.[0] ?? 0;
+
     // Check if we got valid response
     if (!quoteData || (quoteData.c === 0 && quoteData.h === 0)) {
       console.error("No data found for symbol:", symbol);
@@ -235,7 +243,8 @@ export async function getStockQuote(symbol: string): Promise<StockData | null> {
       price: quoteData.c,
       change: quoteData.d,
       changePercent: quoteData.dp,
-      volume: quoteData.v,
+      volume: yahooVolume,
+
       marketCap: profileData.marketCapitalization
         ? profileData.marketCapitalization * 1000000
         : undefined,
@@ -282,14 +291,14 @@ export async function searchStocks(query: string): Promise<SearchResult[]> {
 
 // Get trending stocks
 export async function getTrendingStocks(): Promise<StockData[]> {
-  console.log("Getting trending stocks from Finnhub API");
+  console.log("Getting trending stocks");
 
   try {
     const stocksPromises = POPULAR_SYMBOLS.slice(0, 10).map(async (symbol) => {
-      const quoteUrl = `${FINNHUB_BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
-      const profileUrl = `${FINNHUB_BASE_URL}/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
-
       try {
+        const quoteUrl = `${FINNHUB_BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+        const profileUrl = `${FINNHUB_BASE_URL}/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+
         const [quoteResponse, profileResponse] = await Promise.all([
           fetch(quoteUrl),
           fetch(profileUrl),
@@ -298,20 +307,28 @@ export async function getTrendingStocks(): Promise<StockData[]> {
         const quoteData = await quoteResponse.json();
         const profileData = await profileResponse.json();
 
-        // Check if we got valid response
         if (quoteData.c === 0 && quoteData.h === 0) {
           throw new Error(`No valid data for ${symbol}`);
         }
 
+        // 🔥 Fetch volume from Yahoo
+        // Fetch volume from your server API (no CORS)
+        const yahooRes = await fetch(`/api/yahoo/${symbol}?range=1d`);
+        const yahooData = await yahooRes.json();
+
+        const yahooVolume =
+          yahooData?.chart?.result?.[0]?.indicators?.quote?.[0]?.volume?.[0] ??
+          0;
+
         return {
-          symbol: symbol,
+          symbol,
           name: profileData.name || symbol,
           price: quoteData.c,
           change: quoteData.d,
           changePercent: quoteData.dp,
-          volume: quoteData.v,
+          volume: yahooVolume, // ✅ Now consistent
           marketCap: profileData.marketCapitalization
-            ? profileData.marketCapitalization * 1000000
+            ? profileData.marketCapitalization * 1_000_000
             : undefined,
           high: quoteData.h,
           low: quoteData.l,
@@ -328,19 +345,77 @@ export async function getTrendingStocks(): Promise<StockData[]> {
     const validResults = results.filter(Boolean) as StockData[];
 
     if (validResults.length === 0) {
-      console.error("No valid data returned from API, using fallback data");
+      console.error("No valid data returned, using fallback");
       return FALLBACK_STOCKS;
     }
 
     return validResults;
   } catch (error) {
-    console.error(
-      "Error fetching trending stocks, using fallback data:",
-      error,
-    );
+    console.error("Error fetching trending stocks:", error);
     return FALLBACK_STOCKS;
   }
 }
+
+// export async function getTrendingStocks(): Promise<StockData[]> {
+//   console.log("Getting trending stocks from Finnhub API");
+
+//   try {
+//     const stocksPromises = POPULAR_SYMBOLS.slice(0, 10).map(async (symbol) => {
+//       const quoteUrl = `${FINNHUB_BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+//       const profileUrl = `${FINNHUB_BASE_URL}/stock/profile2?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+
+//       try {
+//         const [quoteResponse, profileResponse] = await Promise.all([
+//           fetch(quoteUrl),
+//           fetch(profileUrl),
+//         ]);
+
+//         const quoteData = await quoteResponse.json();
+//         const profileData = await profileResponse.json();
+
+//         // Check if we got valid response
+//         if (quoteData.c === 0 && quoteData.h === 0) {
+//           throw new Error(`No valid data for ${symbol}`);
+//         }
+
+//         return {
+//           symbol: symbol,
+//           name: profileData.name || symbol,
+//           price: quoteData.c,
+//           change: quoteData.d,
+//           changePercent: quoteData.dp,
+//           volume: quoteData.v,
+//           marketCap: profileData.marketCapitalization
+//             ? profileData.marketCapitalization * 1000000
+//             : undefined,
+//           high: quoteData.h,
+//           low: quoteData.l,
+//           open: quoteData.o,
+//           previousClose: quoteData.pc,
+//         };
+//       } catch (err) {
+//         console.error(`Error fetching data for ${symbol}:`, err);
+//         return null;
+//       }
+//     });
+
+//     const results = await Promise.all(stocksPromises);
+//     const validResults = results.filter(Boolean) as StockData[];
+
+//     if (validResults.length === 0) {
+//       console.error("No valid data returned from API, using fallback data");
+//       return FALLBACK_STOCKS;
+//     }
+
+//     return validResults;
+//   } catch (error) {
+//     console.error(
+//       "Error fetching trending stocks, using fallback data:",
+//       error,
+//     );
+//     return FALLBACK_STOCKS;
+//   }
+// }
 
 // Get historical data for a stock
 

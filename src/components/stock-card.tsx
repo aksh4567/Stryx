@@ -1,13 +1,19 @@
-"use client"
-
-import Link from "next/link"
-import { motion } from "framer-motion"
-import { ArrowUpRight, ArrowDownRight, Star, X } from "lucide-react"
-import { StockData } from "@/lib/api"
-import { useStocks } from "@/context/stock-context"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { Toggle } from "@/components/ui/toggle"
-import { Button } from "@/components/ui/button"
+"use client";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowUpRight, ArrowDownRight, Star, X } from "lucide-react";
+import { StockData } from "@/lib/api";
+import { useStocks } from "@/context/stock-context";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Toggle } from "@/components/ui/toggle";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 interface StockCardProps {
   stock: StockData;
@@ -15,71 +21,80 @@ interface StockCardProps {
   onRemove?: (symbol: string) => void;
 }
 
-export function StockCard({ stock, showRemoveButton = false, onRemove }: StockCardProps) {
-  const { isInWatchlist, addToWatchlist, removeFromWatchlist } = useStocks()
-  const isWatchlisted = isInWatchlist(stock.symbol)
+export function StockCard({
+  stock,
+  showRemoveButton = false,
+  onRemove,
+}: StockCardProps) {
+  const { isInWatchlist, addToWatchlist, removeFromWatchlist } = useStocks();
+  const isWatchlisted = isInWatchlist(stock.symbol);
 
   const toggleWatchlist = () => {
     if (isWatchlisted) {
-      removeFromWatchlist(stock.symbol)
+      removeFromWatchlist(stock.symbol);
     } else {
-      addToWatchlist(stock.symbol)
+      addToWatchlist(stock.symbol);
     }
-  }
+  };
 
   const handleRemove = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
     if (onRemove) {
-      onRemove(stock.symbol)
+      onRemove(stock.symbol);
     }
-  }
+  };
 
   const formatNumber = (num: number | undefined | null) => {
     if (typeof num !== "number" || isNaN(num)) return "-";
     if (num >= 1_000_000_000_000) {
-      return `$${(num / 1_000_000_000_000).toFixed(2)}T`
+      return `$${(num / 1_000_000_000_000).toFixed(2)}T`;
     } else if (num >= 1_000_000_000) {
-      return `$${(num / 1_000_000_000).toFixed(2)}B`
+      return `$${(num / 1_000_000_000).toFixed(2)}B`;
     } else if (num >= 1_000_000) {
-      return `$${(num / 1_000_000).toFixed(2)}M`
+      return `$${(num / 1_000_000).toFixed(2)}M`;
     } else {
-      return `$${num.toLocaleString()}`
+      return `$${num.toLocaleString()}`;
     }
-  }
+  };
 
   const formatVolume = (volume: number | undefined | null) => {
     if (typeof volume !== "number" || isNaN(volume)) return "-";
     if (volume >= 1_000_000_000) {
-      return `${(volume / 1_000_000_000).toFixed(2)}B`
+      return `${(volume / 1_000_000_000).toFixed(2)}B`;
     } else if (volume >= 1_000_000) {
-      return `${(volume / 1_000_000).toFixed(2)}M`
+      return `${(volume / 1_000_000).toFixed(2)}M`;
     } else if (volume >= 1_000) {
-      return `${(volume / 1_000).toFixed(2)}K`
+      return `${(volume / 1_000).toFixed(2)}K`;
     } else {
-      return volume.toLocaleString()
+      return volume.toLocaleString();
     }
-  }
+  };
 
   // Helper to safely format numbers
-  const safeToFixed = (value: number | undefined | null, digits = 2, fallback = "-") => {
+  const safeToFixed = (
+    value: number | undefined | null,
+    digits = 2,
+    fallback = "-",
+  ) => {
     if (typeof value === "number" && !isNaN(value)) {
-      return value.toFixed(digits)
+      return value.toFixed(digits);
     }
-    return fallback
-  }
+    return fallback;
+  };
 
   // Card animation variants
   const cardVariants = {
     hover: {
       y: -8,
-      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+      boxShadow:
+        "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
       transition: {
         type: "spring",
         stiffness: 300,
-        damping: 15
-      }
-    }
+        damping: 15,
+      },
+    },
   };
 
   // Content animation variants
@@ -89,9 +104,9 @@ export function StockCard({ stock, showRemoveButton = false, onRemove }: StockCa
       transition: {
         type: "spring",
         stiffness: 500,
-        damping: 20
-      }
-    }
+        damping: 20,
+      },
+    },
   };
 
   // Price animation variants
@@ -102,17 +117,15 @@ export function StockCard({ stock, showRemoveButton = false, onRemove }: StockCa
       transition: {
         type: "spring",
         stiffness: 700,
-        damping: 30
-      }
-    }
+        damping: 30,
+      },
+    },
   };
 
+  console.log("StockCard volume:", stock.volume);
+
   return (
-    <motion.div
-      whileHover="hover"
-      initial="initial"
-      className="h-full"
-    >
+    <motion.div whileHover="hover" initial="initial" className="h-full">
       <motion.div variants={cardVariants} className="h-full">
         <Card className="overflow-hidden h-full flex flex-col relative">
           {showRemoveButton && onRemove && (
@@ -130,36 +143,37 @@ export function StockCard({ stock, showRemoveButton = false, onRemove }: StockCa
             <CardTitle className="text-base font-medium flex items-start gap-2">
               <div className="flex-1 truncate">
                 <Link href={`/stocks/${stock.symbol}`}>
-                  <motion.span 
+                  <motion.span
                     className="font-semibold hover:underline"
                     whileHover={{ color: "hsl(var(--primary))" }}
                   >
                     {stock.symbol}
                   </motion.span>
                 </Link>
-                <p className="text-sm text-muted-foreground truncate">{stock.name}</p>
+                <p className="text-sm text-muted-foreground truncate">
+                  {stock.name}
+                </p>
               </div>
             </CardTitle>
-            <motion.div
-              whileHover={{ scale: 1.2 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <Toggle 
+            <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}>
+              <Toggle
                 aria-label="Toggle watchlist"
                 pressed={isWatchlisted}
                 onPressedChange={toggleWatchlist}
                 className="transition-all duration-300"
               >
-                <Star className={`h-4 w-4 transition-all duration-300 ${isWatchlisted ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                <Star
+                  className={`h-4 w-4 transition-all duration-300 ${isWatchlisted ? "fill-yellow-400 text-yellow-400" : ""}`}
+                />
               </Toggle>
             </motion.div>
           </CardHeader>
           <CardContent className="flex-grow">
-            <motion.div 
+            <motion.div
               className="flex justify-between items-baseline"
               variants={contentVariants}
             >
-              <motion.div 
+              <motion.div
                 className="text-2xl font-bold"
                 variants={priceVariants}
               >
@@ -167,12 +181,14 @@ export function StockCard({ stock, showRemoveButton = false, onRemove }: StockCa
               </motion.div>
               <motion.div
                 className={`flex items-center ${
-                  (typeof stock.change === "number" && stock.change >= 0) ? "text-green-500" : "text-red-500"
+                  typeof stock.change === "number" && stock.change >= 0
+                    ? "text-green-500"
+                    : "text-red-500"
                 }`}
                 whileHover={{ scale: 1.1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
-                {(typeof stock.change === "number" && stock.change >= 0) ? (
+                {typeof stock.change === "number" && stock.change >= 0 ? (
                   <ArrowUpRight className="mr-1 h-4 w-4" />
                 ) : (
                   <ArrowDownRight className="mr-1 h-4 w-4" />
@@ -213,5 +229,5 @@ export function StockCard({ stock, showRemoveButton = false, onRemove }: StockCa
         </Card>
       </motion.div>
     </motion.div>
-  )
-} 
+  );
+}
