@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/card";
 import { Toggle } from "@/components/ui/toggle";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 
 interface StockCardProps {
   stock: StockData;
